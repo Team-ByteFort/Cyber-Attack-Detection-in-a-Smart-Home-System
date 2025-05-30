@@ -2,3 +2,4 @@
 target/
 python-implementation/logs/
 python-implementation/anomaly_log.json
+python-implementation/__pycache__/
