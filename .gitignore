@@ -1,3 +1,4 @@
 # Maven
 target/
 python-implementation/logs/
+python-implementation/anomaly_log.json
