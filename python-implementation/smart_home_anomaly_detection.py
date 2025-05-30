@@ -181,38 +181,165 @@ def process_event(event):
 if __name__ == "__main__":
     # Simulate some events
     events = [
+        # Historical power readings for baseline
+        {
+            "type": "sensor_reading",
+            "timestamp": datetime.datetime(2023, 10, 1, 8, 0, 0),
+            "device_id": "appliance1",
+            "reading_type": "power",
+            "value": 100,
+        },
+        {
+            "type": "sensor_reading",
+            "timestamp": datetime.datetime(2023, 10, 1, 8, 30, 0),
+            "device_id": "appliance1",
+            "reading_type": "power",
+            "value": 100,
+        },
+        {
+            "type": "sensor_reading",
+            "timestamp": datetime.datetime(2023, 10, 1, 9, 0, 0),
+            "device_id": "appliance1",
+            "reading_type": "power",
+            "value": 100,
+        },
+        {
+            "type": "sensor_reading",
+            "timestamp": datetime.datetime(2023, 10, 1, 9, 30, 0),
+            "device_id": "appliance1",
+            "reading_type": "power",
+            "value": 100,
+        },
+        # Normal operations
         {
             "type": "login_attempt",
-            "timestamp": datetime.datetime.now(),
-            "user_id": "user1",
-            "success": False,
+            "timestamp": datetime.datetime(2023, 10, 1, 9, 0, 0),
+            "user_id": "admin1",
+            "success": True,
+            "role": "ADMIN",
         },
         {
             "type": "control_command",
-            "timestamp": datetime.datetime.now(),
+            "timestamp": datetime.datetime(2023, 10, 1, 9, 5, 0),
             "user_id": "admin1",
             "role": "ADMIN",
             "device_id": "light1",
             "command": "on",
         },
         {
-            "type": "sensor_reading",
-            "timestamp": datetime.datetime.now(),
-            "device_id": "thermostat1",
-            "reading_type": "power",
-            "value": 150.0,
+            "type": "login_attempt",
+            "timestamp": datetime.datetime(2023, 10, 1, 9, 10, 0),
+            "user_id": "user1",
+            "success": True,
+            "role": "USER",
         },
         {
             "type": "control_command",
-            "timestamp": datetime.datetime.now(),
+            "timestamp": datetime.datetime(2023, 10, 1, 9, 15, 0),
             "user_id": "user1",
             "role": "USER",
-            "device_id": "camera1",  # Unusual device for user1
-            "command": "view",
+            "device_id": "thermostat1",
+            "command": "set_temperature",
         },
         {
             "type": "control_command",
-            "timestamp": datetime.datetime.now(),
+            "timestamp": datetime.datetime(2023, 10, 1, 9, 20, 0),
+            "user_id": "user1",
+            "role": "USER",
+            "device_id": "light1",
+            "command": "off",
+        },
+        {
+            "type": "control_command",
+            "timestamp": datetime.datetime(2023, 10, 1, 9, 25, 0),
+            "user_id": "admin1",
+            "role": "ADMIN",
+            "device_id": "light1",
+            "command": "off",
+        },
+        # Attack scenario: Multiple failed login attempts
+        {
+            "type": "login_attempt",
+            "timestamp": datetime.datetime(2023, 10, 1, 10, 0, 0),
+            "user_id": "user1",
+            "success": False,
+        },
+        {
+            "type": "login_attempt",
+            "timestamp": datetime.datetime(2023, 10, 1, 10, 0, 10),
+            "user_id": "user1",
+            "success": False,
+        },
+        {
+            "type": "login_attempt",
+            "timestamp": datetime.datetime(2023, 10, 1, 10, 0, 20),
+            "user_id": "user1",
+            "success": False,
+        },
+        {
+            "type": "login_attempt",
+            "timestamp": datetime.datetime(2023, 10, 1, 10, 0, 30),
+            "user_id": "user1",
+            "success": False,
+        },
+        {
+            "type": "login_attempt",
+            "timestamp": datetime.datetime(2023, 10, 1, 10, 0, 40),
+            "user_id": "user1",
+            "success": False,
+        },
+        {
+            "type": "login_attempt",
+            "timestamp": datetime.datetime(2023, 10, 1, 10, 0, 50),
+            "user_id": "user1",
+            "success": False,
+        },
+        {
+            "type": "login_attempt",
+            "timestamp": datetime.datetime(2023, 10, 1, 10, 1, 0),
+            "user_id": "user1",
+            "success": True,
+            "role": "USER",
+        },
+        # Attack scenario: Rapid control commands
+        *[
+            {
+                "type": "control_command",
+                "timestamp": datetime.datetime(2023, 10, 1, 10, 10, 0)
+                + datetime.timedelta(seconds=i * 2),
+                "user_id": "user1",
+                "role": "USER",
+                "device_id": "light1",
+                "command": "on",
+            }
+            for i in range(15)
+        ],
+        # Attack scenario: Anomalous power readings
+        {
+            "type": "sensor_reading",
+            "timestamp": datetime.datetime(2023, 10, 1, 10, 15, 0),
+            "device_id": "appliance1",
+            "reading_type": "power",
+            "value": -50,
+        },
+        {
+            "type": "sensor_reading",
+            "timestamp": datetime.datetime(2023, 10, 1, 10, 16, 0),
+            "device_id": "appliance1",
+            "reading_type": "power",
+            "value": 100,
+        },
+        {
+            "type": "sensor_reading",
+            "timestamp": datetime.datetime(2023, 10, 1, 10, 20, 0),
+            "device_id": "appliance1",
+            "reading_type": "power",
+            "value": 160,
+        },
+        # Attack scenario: Unusual device access and suspicious command sequence
+        {
+            "type": "control_command",
+            "timestamp": datetime.datetime(2023, 10, 1, 10, 25, 0),
             "user_id": "user1",
             "role": "USER",
             "device_id": "alarm1",
@@ -220,7 +347,7 @@ if __name__ == "__main__":
         },
         {
             "type": "control_command",
-            "timestamp": datetime.datetime.now() + datetime.timedelta(seconds=5),
+            "timestamp": datetime.datetime(2023, 10, 1, 10, 25, 5),
             "user_id": "user1",
             "role": "USER",
             "device_id": "door1",
