@@ -4,7 +4,7 @@ from collections import deque
 
 # Constants
 BUSINESS_HOURS_START = 9
-BUSINESS_HOURS_END = 17
+BUSINESS_HOURS_END = 20
 FAILED_LOGIN_WINDOW = datetime.timedelta(minutes=1)
 FAILED_LOGIN_THRESHOLD = 5
 CONTROL_COMMAND_WINDOW = datetime.timedelta(seconds=30)
@@ -22,6 +22,7 @@ state = {
     "power_readings": {},  # device_id: list of values
     "user_profiles": {  # user_id: set of device_ids (pre-populated or updated)
         "user1": {"light1", "thermostat1"},
+        "user2": {"light1", "thermostat1"},
         "admin1": {"light1", "camera1", "alarm1", "door1"},
     },
     "user_commands": {},  # user_id: list of (command, timestamp)
@@ -179,57 +180,78 @@ def process_event(event):
 
 # Example usage with simulated events
 if __name__ == "__main__":
-    # Simulate some events
-    events = [
-        {
-            "type": "login_attempt",
-            "timestamp": datetime.datetime.now(),
-            "user_id": "user1",
-            "success": False,
-        },
-        {
-            "type": "control_command",
-            "timestamp": datetime.datetime.now(),
-            "user_id": "admin1",
-            "role": "ADMIN",
-            "device_id": "light1",
-            "command": "on",
-        },
-        {
-            "type": "sensor_reading",
-            "timestamp": datetime.datetime.now(),
-            "device_id": "thermostat1",
-            "reading_type": "power",
-            "value": 150.0,
-        },
-        {
-            "type": "control_command",
-            "timestamp": datetime.datetime.now(),
-            "user_id": "user1",
-            "role": "USER",
-            "device_id": "camera1",  # Unusual device for user1
-            "command": "view",
-        },
-        {
-            "type": "control_command",
-            "timestamp": datetime.datetime.now(),
-            "user_id": "user1",
-            "role": "USER",
-            "device_id": "alarm1",
-            "command": "disable_alarm",
-        },
-        {
-            "type": "control_command",
-            "timestamp": datetime.datetime.now() + datetime.timedelta(seconds=5),
-            "user_id": "user1",
-            "role": "USER",
-            "device_id": "door1",
-            "command": "unlock_door",
-        },
+    now = datetime.datetime.now()
+
+    # --- Normal login attempts ---
+    normal_login_events = [
+        {"type": "login_attempt", "timestamp": now, "user_id": "user1", "success": True},
+        {"type": "login_attempt", "timestamp": now + datetime.timedelta(seconds=10), "user_id": "user1", "success": False},
+        {"type": "login_attempt", "timestamp": now + datetime.timedelta(seconds=20), "user_id": "user1", "success": False},
     ]
 
+    # --- Abnormal: multiple failed login attempts ---
+    abnormal_login_events = [
+        {"type": "login_attempt", "timestamp": now + datetime.timedelta(seconds=i*5 + 65), "user_id": "user1", "success": False}
+        for i in range(6)
+    ]
+
+    # --- Normal control commands ---
+    normal_control_commands = [
+        {"type": "control_command", "timestamp": now + datetime.timedelta(seconds=i * 5), "user_id": "admin1", "role": "ADMIN", "device_id": "light1", "command": "on"}
+        for i in range(11)
+    ] + [
+        {"type": "control_command", "timestamp": now + datetime.timedelta(seconds=i * 5), "user_id": "user1", "role": "USER", "device_id": "light1", "command": "off"}
+        for i in range(5)
+    ]
+
+    # --- Abnormal: excessive control commands within short time ---
+    abnormal_control_commands = [
+        {"type": "control_command", "timestamp": now + datetime.timedelta(seconds=i), "user_id": "user2", "role": "USER", "device_id": "light1", "command": "on"}
+        for i in range(11)
+    ]
+
+    # --- Normal power readings ---
+    normal_power_readings = [
+        {"type": "sensor_reading", "timestamp": now + datetime.timedelta(seconds=i), "device_id": "thermostat1", "reading_type": "power", "value": 100 + i}
+        for i in range(20)
+    ]
+
+    # --- Abnormal: high power reading ---
+    abnormal_power_reading = [
+        {"type": "sensor_reading", "timestamp": now + datetime.timedelta(seconds=30), "device_id": "thermostat1", "reading_type": "power", "value": 300.0}
+    ]
+
+    # --- Abnormal: zero power reading ---
+    zero_power_reading = [
+        {"type": "sensor_reading", "timestamp": now + datetime.timedelta(seconds=31), "device_id": "thermostat1", "reading_type": "power", "value": 0.0}
+    ]
+
+    # --- Abnormal: unusual device access ---
+    abnormal_device_access = [
+        {"type": "control_command", "timestamp": now + datetime.timedelta(seconds=40), "user_id": "user1", "role": "USER", "device_id": "camera1", "command": "view"},
+    ]
+
+    # --- Abnormal: suspicious command sequence ---
+    suspicious_sequence = [
+        {"type": "control_command", "timestamp": now + datetime.timedelta(seconds=50), "user_id": "user1", "role": "USER", "device_id": "alarm1", "command": "disable_alarm"},
+        {"type": "control_command", "timestamp": now + datetime.timedelta(seconds=55), "user_id": "user1", "role": "USER", "device_id": "door1", "command": "unlock_door"},
+    ]
+
+    # Combine all events
+    all_events = (
+        normal_login_events +
+        abnormal_login_events +
+        normal_control_commands +
+        abnormal_control_commands +
+        normal_power_readings +
+        abnormal_power_reading +
+        zero_power_reading +
+        abnormal_device_access +
+        suspicious_sequence
+    )
+
     # Process each event
-    for event in events:
+    for event in all_events:
         anomalies = process_event(event)
         if anomalies:
             print(f"Anomalies detected: {anomalies}")
